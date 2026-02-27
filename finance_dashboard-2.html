@@ -11,7 +11,8 @@ href="data:image/svg+xml,
 %3Ctext x='50' y='62' font-size='55' text-anchor='middle' fill='white' font-family='Arial'%3E📊%3C/text%3E
 %3C/svg%3E">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js">
+</script>
 
 <style>
 body{
@@ -89,11 +90,29 @@ select{
 canvas{
     max-height:260px;
 }
+
+/*Top Nav_Bar Design */
+.top-nav a{
+    text-decoration:none;
+    background:#1f8e0d;
+    color:white;
+    padding:8px 10px;
+    border-radius:8px;
+    font-size:14px;
+    transition:0.3s;
+}
+.top-nav a:hover{
+    background:#163c74;
+}
 </style>
-</head>
+
+<!--Home Button-->
+<div class="top-nav">
+    <a href="index.html">← Back to Home</a>
+</div>
+
 
 <body>
-
 <div class="filters">
     <select id="yearFilter">
         <option value="All">All Years</option>
