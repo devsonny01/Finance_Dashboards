@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Corporate Finance Dashboard (connected to Google Sheets)</title>
+<title>Corporate Finance Dashboard · Live Google Sheet</title>
 
 <link rel="icon" type="image/svg+xml" 
 href="data:image/svg+xml,
@@ -116,6 +116,7 @@ canvas{
     <a href="index.html">← Back to Home</a>
 </div>
 
+
 <body>
 <div class="filters">
     <select id="yearFilter">
@@ -164,17 +165,17 @@ canvas{
 </div>
 
 <script>
-/* ---------------------------------------------------------------
-   DATA CONNECTION: Google Sheets (public CSV export)
-   Sheet ID: 14SIxJHk_iUecqajLe6u-EUXpvdY68cwFs9V6ke1wAqQ
-   GID: 0  (first sheet)
-   --------------------------------------------------------------- */
+// ================================================================
+//  GOOGLE SHEET CONNECTION (dataset removed, now live from CSV)
+//  Sheet URL: https://docs.google.com/spreadsheets/d/14SIxJHk_iUecqajLe6u-EUXpvdY68cwFs9V6ke1wAqQ/edit?gid=0
+//  CSV export endpoint:
+// ================================================================
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/14SIxJHk_iUecqajLe6u-EUXpvdY68cwFs9V6ke1wAqQ/export?format=csv&gid=0';
 
-// Global variable to hold the loaded dataset (will replace the old hardcoded 'data')
+// Global variable that will hold the data from Google Sheets (replaces old 'data' array)
 let sheetData = [];
 
-/* Chart Instances (same as before) */
+/* Chart Instances (identical to original, but will be updated with sheetData) */
 let donutChart = new Chart(document.getElementById('donutChart'),{
     type:'doughnut',
     data:{labels:["Income","Expense"],datasets:[{data:[0,0],backgroundColor:["#1f4e9a","#c0392b"]}]},
@@ -232,7 +233,7 @@ let lineChart = new Chart(document.getElementById('lineChart'),{
     }
 });
 
-/* Function to update dashboard using sheetData */
+/* Update Dashboard — exactly the same logic, but using sheetData instead of old 'data' */
 function updateDashboard(){
 
 let year = document.getElementById("yearFilter").value;
@@ -286,82 +287,88 @@ lineChart.data.datasets[0].data=monthly;
 lineChart.update();
 }
 
-/* Populate year filter from sheetData */
+/* Populate Year Filter from the loaded sheetData */
 function populateYearFilter() {
     let yearSet = new Set();
     sheetData.forEach(d => yearSet.add(d.date.split("/")[2]));
     let select = document.getElementById("yearFilter");
-    // keep the first "All Years" option
+    // keep the "All Years" option, remove dynamically added ones
     select.innerHTML = '<option value="All">All Years</option>';
-    // sort years for consistency
+    // sort years for nicer display
     Array.from(yearSet).sort().forEach(y => {
-        select.innerHTML += `<option>${y}</option>`;
+        if (y) select.innerHTML += `<option>${y}</option>`;
     });
 }
 
-/* Load CSV from Google Sheets and replace the hardcoded dataset */
-async function loadSheetData() {
+/* Fetch CSV from Google Sheets, parse, and replace the hardcoded dataset */
+async function connectSheet() {
     try {
         const response = await fetch(SHEET_CSV_URL);
         const csvText = await response.text();
         
-        // Simple CSV parse (assumes headers: date,category,amount,type)
-        const rows = csvText.trim().split('\n');
-        const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
-        
-        // Map expected columns: date, category, amount, type
+        // Simple CSV split (assuming no quoted commas, which is fine for simple financial data)
+        const lines = csvText.trim().split('\n');
+        if (lines.length < 2) {
+            console.warn('Sheet appears empty');
+            sheetData = [];
+            populateYearFilter();
+            updateDashboard();
+            return;
+        }
+
+        // Extract headers (case‑insensitive)
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
         const dateIdx = headers.indexOf('date');
         const catIdx = headers.indexOf('category');
         const amtIdx = headers.indexOf('amount');
         const typeIdx = headers.indexOf('type');
         
         if (dateIdx === -1 || catIdx === -1 || amtIdx === -1 || typeIdx === -1) {
-            console.error('CSV must contain columns: date, category, amount, type');
+            console.error('Sheet must contain columns: date, category, amount, type');
             return;
         }
 
-        let parsedData = [];
-        for (let i = 1; i < rows.length; i++) {
-            if (!rows[i].trim()) continue; // skip empty lines
-            // handle possible commas inside quotes? not needed for simple numeric data.
-            const cols = rows[i].split(',');
-            if (cols.length < 4) continue;
+        let parsed = [];
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            const cols = lines[i].split(',');
+            if (cols.length <= Math.max(dateIdx, catIdx, amtIdx, typeIdx)) continue;
             
             const date = cols[dateIdx].trim();
             const category = cols[catIdx].trim();
             const amount = parseFloat(cols[amtIdx].trim());
             const type = cols[typeIdx].trim();
             
-            // Validate required fields
+            // basic validation
             if (!date || !category || isNaN(amount) || !type) continue;
             
-            parsedData.push({ date, category, amount, type });
+            parsed.push({ date, category, amount, type });
         }
         
-        sheetData = parsedData;  // replace old empty array
+        sheetData = parsed;   // <-- global dataset now comes from sheet
         
-        // Now populate filters and update dashboard
+        // Update filter and dashboard
         populateYearFilter();
         updateDashboard();
         
-    } catch (error) {
-        console.error('Error loading Google Sheet:', error);
-        // If sheet fails to load, fallback to empty data (or could show error)
+    } catch (err) {
+        console.error('Failed to load Google Sheet:', err);
+        // fallback: empty dataset (no hardcoded data)
         sheetData = [];
-        populateYearFilter(); // empty set, only "All Years"
+        populateYearFilter();
         updateDashboard();
     }
 }
 
-/* Event listeners */
+// Attach listeners (same as original)
 document.getElementById("yearFilter").addEventListener("change", updateDashboard);
 document.getElementById("typeFilter").addEventListener("change", updateDashboard);
 
-/* Initial load from Google Sheets — this replaces the static dataset */
-loadSheetData();
+// Start the connection — this replaces the old static dataset completely
+connectSheet();
 
-/* NOTE: The old hardcoded 'data' array has been completely removed.
-   All charts now feed from 'sheetData' loaded from the provided Google Sheet link. */
+// NOTE: the original hardcoded 'data' array has been removed.
+// All charts now use 'sheetData' loaded from the provided Google Sheet link.
 </script>
 
 </body>
