@@ -126,48 +126,41 @@ canvas{
 
 <script>
 
-/* ================= GOOGLE SHEET CONNECTION ================= */
-
 let data = [];
 
 fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vTC9oVh_keSpL8JCy71_9-OFdQ2E1EGa2YPKy7o915PUJF9Lakgcl6z66y21bXgdG7pIC840VDE2VI4/pub?output=csv")
 .then(response => response.text())
 .then(csv => {
 
-let rows = csv.split("\n").slice(1);
+    // Proper CSV parsing
+    const rows = csv.trim().split("\n").slice(1);
 
-rows.forEach(row => {
+    rows.forEach(row => {
 
-if(row.trim() === "") return;
+        // Use regex to handle commas inside currency properly
+        const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
 
-let cols = row.split(",");
+        if(!cols || cols.length < 6) return;
 
-if(cols.length >= 6){
+        let date = cols[1].replace(/"/g,'').trim();
+        let category = cols[3].replace(/"/g,'').trim();
+        let amount = cols[4].replace(/"/g,'').trim();
+        let type = cols[5].replace(/"/g,'').trim();
 
-let date = cols[1];
-let category = cols[3];
-let amount = cols[4];
-let type = cols[5];
+        data.push({
+            date: date,
+            category: category,
+            amount: parseFloat(amount.replace(/[^0-9.-]+/g,"")),
+            type: type
+        });
 
-data.push({
-    date: date.trim(),
-    category: category.trim(),
-    amount: parseFloat(amount.replace(/[^0-9.-]+/g,"")), // FIXED currency
-    type: type.trim()
-});
+    });
 
-}
-
-});
-
-initializeDashboard();
-
+    initializeDashboard();
 })
-.catch(error => {
-    console.error("Error loading Google Sheet:", error);
-});
+.catch(err => console.log("Fetch error:", err));
 
-/* ================= CHART SETUP ================= */
+/* Charts */
 
 let donutChart = new Chart(document.getElementById('donutChart'),{
     type:'doughnut',
@@ -199,78 +192,74 @@ let expenseBar = new Chart(document.getElementById('expenseBar'),{
     }
 });
 
-/* ================= INITIALIZE ================= */
-
 function initializeDashboard(){
 
-let yearSet = new Set();
+    let yearSet = new Set();
 
-data.forEach(d => {
-    let parts = d.date.split("/");
-    if(parts.length === 3){
-        yearSet.add(parts[2]);
-    }
-});
+    data.forEach(d=>{
+        let parts = d.date.split("/");
+        if(parts.length === 3){
+            yearSet.add(parts[2]);
+        }
+    });
 
-let yearFilter = document.getElementById("yearFilter");
-yearFilter.innerHTML = '<option value="All">All Years</option>';
+    let yearFilter = document.getElementById("yearFilter");
+    yearFilter.innerHTML = '<option value="All">All Years</option>';
 
-yearSet.forEach(y=>{
-    yearFilter.innerHTML += `<option>${y}</option>`;
-});
+    yearSet.forEach(y=>{
+        yearFilter.innerHTML += `<option>${y}</option>`;
+    });
 
-updateDashboard();
+    updateDashboard();
 }
-
-/* ================= UPDATE FUNCTION ================= */
 
 function updateDashboard(){
 
-let year = document.getElementById("yearFilter").value;
-let type = document.getElementById("typeFilter").value;
+    let year = document.getElementById("yearFilter").value;
+    let type = document.getElementById("typeFilter").value;
 
-let filtered = data.filter(d => {
+    let filtered = data.filter(d => {
 
-let parts = d.date.split("/");
-let recordYear = parts[2];
+        let parts = d.date.split("/");
+        let recordYear = parts[2];
 
-let yearMatch = (year==="All" || recordYear===year);
-let typeMatch = (type==="All" || d.type===type);
+        let yearMatch = (year==="All" || recordYear===year);
+        let typeMatch = (type==="All" || d.type===type);
 
-return yearMatch && typeMatch;
-});
+        return yearMatch && typeMatch;
+    });
 
-let totalIncome = 0;
-let totalExpense = 0;
-let incomeCategories = {};
-let expenseCategories = {};
+    let totalIncome = 0;
+    let totalExpense = 0;
+    let incomeCategories = {};
+    let expenseCategories = {};
 
-filtered.forEach(d=>{
-    if(d.type==="Income"){
-        totalIncome += d.amount;
-        incomeCategories[d.category]=(incomeCategories[d.category]||0)+d.amount;
-    }
-    if(d.type==="Expense"){
-        totalExpense += d.amount;
-        expenseCategories[d.category]=(expenseCategories[d.category]||0)+d.amount;
-    }
-});
+    filtered.forEach(d=>{
+        if(d.type==="Income"){
+            totalIncome += d.amount;
+            incomeCategories[d.category]=(incomeCategories[d.category]||0)+d.amount;
+        }
+        if(d.type==="Expense"){
+            totalExpense += d.amount;
+            expenseCategories[d.category]=(expenseCategories[d.category]||0)+d.amount;
+        }
+    });
 
-let net = totalIncome - totalExpense;
+    let net = totalIncome - totalExpense;
 
-donutChart.data.datasets[0].data=[totalIncome,totalExpense];
-donutChart.update();
+    donutChart.data.datasets[0].data=[totalIncome,totalExpense];
+    donutChart.update();
 
-pieChart.data.datasets[0].data=[totalIncome,totalExpense,net];
-pieChart.update();
+    pieChart.data.datasets[0].data=[totalIncome,totalExpense,net];
+    pieChart.update();
 
-incomeBar.data.labels=Object.keys(incomeCategories);
-incomeBar.data.datasets[0].data=Object.values(incomeCategories);
-incomeBar.update();
+    incomeBar.data.labels=Object.keys(incomeCategories);
+    incomeBar.data.datasets[0].data=Object.values(incomeCategories);
+    incomeBar.update();
 
-expenseBar.data.labels=Object.keys(expenseCategories);
-expenseBar.data.datasets[0].data=Object.values(expenseCategories);
-expenseBar.update();
+    expenseBar.data.labels=Object.keys(expenseCategories);
+    expenseBar.data.datasets[0].data=Object.values(expenseCategories);
+    expenseBar.update();
 }
 
 document.getElementById("yearFilter").addEventListener("change",updateDashboard);
