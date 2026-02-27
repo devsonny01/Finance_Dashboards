@@ -11,8 +11,7 @@ href="data:image/svg+xml,
 %3Ctext x='50' y='62' font-size='55' text-anchor='middle' fill='white' font-family='Arial'%3E📊%3C/text%3E
 %3C/svg%3E">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js">
-</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body{
@@ -21,7 +20,6 @@ body{
     background:#c8dbee;
 }
 
-/* Filters */
 .filters{
     width:95%;
     margin:25px auto;
@@ -37,7 +35,6 @@ select{
     font-weight:600;
 }
 
-/* Dashboard Grid */
 .dashboard{
     width:95%;
     margin:20px auto 40px auto;
@@ -46,7 +43,6 @@ select{
     gap:30px;
 }
 
-/* Cards */
 .card{
     background:#a9c4df;
     border-radius:30px;
@@ -64,10 +60,8 @@ select{
     text-align:center;
     margin-bottom:15px;
     color:#1f1f1f;
-    font-weight:700;
 }
 
-/* KPI */
 .kpi{
     display:flex;
     flex-direction:column;
@@ -82,18 +76,16 @@ select{
     color:#1f1f1f;
 }
 
-.kpi p{
-    font-weight:600;
-    color:#1f1f1f;
-}
-
 canvas{
     max-height:260px;
 }
 
-/*Top Nav_Bar Design */
+.top-nav{
+    width:95%;
+    margin:18px;
+}
+
 .top-nav a{
-    
     text-decoration:none;
     background:#25ae10;
     color:white;
@@ -105,20 +97,15 @@ canvas{
 .top-nav a:hover{
     background:#163c74;
 }
-.top-nav{
-    width:95%;
-    margin:18px;  /* increased top space */
-}
-
 </style>
+</head>
 
-<!--Home Button-->
+<body>
+
 <div class="top-nav">
     <a href="index.html">← Back to Home</a>
 </div>
 
-
-<body>
 <div class="filters">
     <select id="yearFilter">
         <option value="All">All Years</option>
@@ -167,14 +154,11 @@ canvas{
 
 <script>
 
-
-<script>
-
-    // DATASET
-// Connect to  published Google Sheet CSV
 let data = [];
+
+/* 🔥 CONNECT TO GOOGLE SHEET */
 fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vTC9oVh_keSpL8JCy71_9-OFdQ2E1EGa2YPKy7o915PUJF9Lakgcl6z66y21bXgdG7pIC840VDE2VI4/pub?output=csv")
-.then(response => response.text())
+.then(res => res.text())
 .then(csv => {
 
     const rows = csv.trim().split("\n").slice(1);
@@ -182,7 +166,6 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vTC9oVh_keSpL8JCy71_9-OFd
     rows.forEach(row => {
 
         const cols = row.split(",");
-
         if(cols.length < 6) return;
 
         data.push({
@@ -196,30 +179,28 @@ fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vTC9oVh_keSpL8JCy71_9-OFd
 
     initializeDashboard();
 })
-.catch(err => console.log("Sheet error:", err));
+.catch(err => console.log("Sheet Error:", err));
 
 /* Charts */
 
 let donutChart = new Chart(document.getElementById('donutChart'),{
     type:'doughnut',
-    data:{labels:["Income","Expense"],datasets:[{data:[0,0],backgroundColor:["#1f4e9a","#c0392b"]}]},
-    options:{plugins:{legend:{labels:{color:"#1f1f1f"}}}}
+    data:{labels:["Income","Expense"],datasets:[{data:[0,0],backgroundColor:["#1f4e9a","#c0392b"]}]}
 });
 
 let pieChart = new Chart(document.getElementById('pieChart'),{
     type:'pie',
-    data:{labels:["Income","Expense","Net"],datasets:[{data:[0,0,0],backgroundColor:["#1f4e9a","#c0392b","#27ae60"]}]},
-    options:{plugins:{legend:{labels:{color:"#1f1f1f"}}}}
+    data:{labels:["Income","Expense","Net"],datasets:[{data:[0,0,0],backgroundColor:["#1f4e9a","#c0392b","#27ae60"]}]}
 });
 
 let incomeBar = new Chart(document.getElementById('incomeBar'),{
     type:'bar',
-    data:{labels:[],datasets:[{label:"Income",data:[],backgroundColor:"#1f4e9a"}]},
+    data:{labels:[],datasets:[{label:"Income",data:[],backgroundColor:"#1f4e9a"}]}
 });
 
 let expenseBar = new Chart(document.getElementById('expenseBar'),{
     type:'bar',
-    data:{labels:[],datasets:[{label:"Expense",data:[],backgroundColor:"#c0392b"}]},
+    data:{labels:[],datasets:[{label:"Expense",data:[],backgroundColor:"#c0392b"}]}
 });
 
 let lineChart = new Chart(document.getElementById('lineChart'),{
@@ -236,21 +217,16 @@ let lineChart = new Chart(document.getElementById('lineChart'),{
     }
 });
 
-/* Initialize */
 function initializeDashboard(){
 
     let yearSet = new Set();
 
     data.forEach(d=>{
         let parts = d.date.split("/");
-        if(parts.length === 3){
-            yearSet.add(parts[2]);
-        }
+        if(parts.length===3) yearSet.add(parts[2]);
     });
 
     let yearFilter = document.getElementById("yearFilter");
-    yearFilter.innerHTML = '<option value="All">All Years</option>';
-
     yearSet.forEach(y=>{
         yearFilter.innerHTML += `<option>${y}</option>`;
     });
@@ -258,16 +234,15 @@ function initializeDashboard(){
     updateDashboard();
 }
 
-/* Update Dashboard */
 function updateDashboard(){
 
 let year = document.getElementById("yearFilter").value;
 let type = document.getElementById("typeFilter").value;
 
 let filtered = data.filter(d=>{
-    let yearMatch = (year==="All" || d.date.split("/")[2]===year);
-    let typeMatch = (type==="All" || d.type===type);
-    return yearMatch && typeMatch;
+    let y = d.date.split("/")[2];
+    return (year==="All" || y===year) &&
+           (type==="All" || d.type===type);
 });
 
 let totalIncome = 0;
@@ -284,6 +259,7 @@ filtered.forEach(d=>{
         totalIncome+=d.amount;
         incomeCat[d.category]=(incomeCat[d.category]||0)+d.amount;
     }
+
     if(d.type==="Expense"){
         totalExpense+=d.amount;
         expenseCat[d.category]=(expenseCat[d.category]||0)+d.amount;
@@ -314,7 +290,7 @@ lineChart.update();
 
 document.getElementById("yearFilter").addEventListener("change",updateDashboard);
 document.getElementById("typeFilter").addEventListener("change",updateDashboard);
-    
+
 </script>
 
 </body>
