@@ -109,6 +109,22 @@ canvas{
     margin:18px;  /* increased top space */
 }
 
+.error-message {
+    color: #c0392b;
+    text-align: center;
+    padding: 20px;
+    font-weight: bold;
+    grid-column: span 3;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    font-weight: bold;
+    color: #1f4e9a;
+    grid-column: span 3;
+}
+
 </style>
 
 <!--Home Button-->
@@ -166,209 +182,297 @@ canvas{
 
 <script>
 // ================================================================
-//  GOOGLE SHEET CONNECTION (dataset removed, now live from CSV)
-//  Sheet URL: https://docs.google.com/spreadsheets/d/14SIxJHk_iUecqajLe6u-EUXpvdY68cwFs9V6ke1wAqQ/edit?gid=0
-//  CSV export endpoint:
+//  GOOGLE SHEET CONNECTION - Using JSONP proxy to avoid CORS
 // ================================================================
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/14SIxJHk_iUecqajLe6u-EUXpvdY68cwFs9V6ke1wAqQ/export?format=csv&gid=0';
+const SHEET_ID = '14SIxJHk_iUecqajLe6u-EUXpvdY68cwFs9V6ke1wAqQ';
+const SHEET_GID = '0';
 
-// Global variable that will hold the data from Google Sheets (replaces old 'data' array)
+// Use a CORS proxy to fetch the CSV
+const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
+
+// Fallback data in case the sheet can't be loaded
+const FALLBACK_DATA = [
+    {date:"01/01/2025",category:"Capital",amount:50000,type:"Income"},
+    {date:"03/01/2025",category:"Rent",amount:8000,type:"Expense"},
+    {date:"05/01/2025",category:"Services",amount:12000,type:"Income"},
+    {date:"08/01/2025",category:"Utilities",amount:1500,type:"Expense"},
+    {date:"12/01/2025",category:"Office",amount:1200,type:"Expense"},
+    {date:"15/01/2025",category:"Services",amount:20000,type:"Income"},
+    {date:"31/12/2025",category:"Utilities",amount:3000,type:"Expense"},
+    {date:"01/01/2026",category:"Water",amount:90000,type:"Income"},
+    {date:"02/01/2026",category:"Goods",amount:100000,type:"Income"},
+    {date:"06/02/2025",category:"Capital",amount:30000,type:"Income"},
+    {date:"06/03/2025",category:"Rent",amount:18000,type:"Expense"},
+    {date:"06/01/2026",category:"Office",amount:18000,type:"Expense"}
+];
+
+// Global variable that will hold the data
 let sheetData = [];
 
-/* Chart Instances (identical to original, but will be updated with sheetData) */
-let donutChart = new Chart(document.getElementById('donutChart'),{
-    type:'doughnut',
-    data:{labels:["Income","Expense"],datasets:[{data:[0,0],backgroundColor:["#1f4e9a","#c0392b"]}]},
-    options:{plugins:{legend:{labels:{color:"#1f1f1f"}}}}
-});
+/* Chart Instances */
+let donutChart, pieChart, incomeBar, expenseBar, lineChart;
 
-let pieChart = new Chart(document.getElementById('pieChart'),{
-    type:'pie',
-    data:{labels:["Income","Expense","Net"],datasets:[{data:[0,0,0],backgroundColor:["#1f4e9a","#c0392b","#27ae60"]}]},
-    options:{plugins:{legend:{labels:{color:"#1f1f1f"}}}}
-});
+/* Initialize Charts */
+function initCharts() {
+    donutChart = new Chart(document.getElementById('donutChart'),{
+        type:'doughnut',
+        data:{labels:["Income","Expense"],datasets:[{data:[0,0],backgroundColor:["#1f4e9a","#c0392b"]}]},
+        options:{plugins:{legend:{labels:{color:"#1f1f1f"}}}}
+    });
 
-let incomeBar = new Chart(document.getElementById('incomeBar'),{
-    type:'bar',
-    data:{labels:[],datasets:[{label:"Income",data:[],backgroundColor:"#1f4e9a"}]},
-    options:{
-        plugins:{legend:{labels:{color:"#1f1f1f"}}},
-        scales:{
-            x:{ticks:{color:"#1f1f1f"}},
-            y:{ticks:{color:"#1f1f1f"}}
+    pieChart = new Chart(document.getElementById('pieChart'),{
+        type:'pie',
+        data:{labels:["Income","Expense","Net"],datasets:[{data:[0,0,0],backgroundColor:["#1f4e9a","#c0392b","#27ae60"]}]},
+        options:{plugins:{legend:{labels:{color:"#1f1f1f"}}}}
+    });
+
+    incomeBar = new Chart(document.getElementById('incomeBar'),{
+        type:'bar',
+        data:{labels:[],datasets:[{label:"Income",data:[],backgroundColor:"#1f4e9a"}]},
+        options:{
+            plugins:{legend:{labels:{color:"#1f1f1f"}}},
+            scales:{
+                x:{ticks:{color:"#1f1f1f"}},
+                y:{ticks:{color:"#1f1f1f"}}
+            }
         }
-    }
-});
+    });
 
-let expenseBar = new Chart(document.getElementById('expenseBar'),{
-    type:'bar',
-    data:{labels:[],datasets:[{label:"Expense",data:[],backgroundColor:"#c0392b"}]},
-    options:{
-        plugins:{legend:{labels:{color:"#1f1f1f"}}},
-        scales:{
-            x:{ticks:{color:"#1f1f1f"}},
-            y:{ticks:{color:"#1f1f1f"}}
+    expenseBar = new Chart(document.getElementById('expenseBar'),{
+        type:'bar',
+        data:{labels:[],datasets:[{label:"Expense",data:[],backgroundColor:"#c0392b"}]},
+        options:{
+            plugins:{legend:{labels:{color:"#1f1f1f"}}},
+            scales:{
+                x:{ticks:{color:"#1f1f1f"}},
+                y:{ticks:{color:"#1f1f1f"}}
+            }
         }
-    }
-});
+    });
 
-let lineChart = new Chart(document.getElementById('lineChart'),{
-    type:'line',
-    data:{
-        labels:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
-        datasets:[{
-            label:"Transactions",
-            data:new Array(12).fill(0),
-            borderColor:"#1f4e9a",
-            backgroundColor:"rgba(31,78,154,0.2)",
-            fill:true
-        }]
-    },
-    options:{
-        plugins:{legend:{labels:{color:"#1f1f1f"}}},
-        scales:{
-            x:{ticks:{color:"#1f1f1f"}},
-            y:{ticks:{color:"#1f1f1f"}}
+    lineChart = new Chart(document.getElementById('lineChart'),{
+        type:'line',
+        data:{
+            labels:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+            datasets:[{
+                label:"Transactions",
+                data:new Array(12).fill(0),
+                borderColor:"#1f4e9a",
+                backgroundColor:"rgba(31,78,154,0.2)",
+                fill:true
+            }]
+        },
+        options:{
+            plugins:{legend:{labels:{color:"#1f1f1f"}}},
+            scales:{
+                x:{ticks:{color:"#1f1f1f"}},
+                y:{ticks:{color:"#1f1f1f"}}
+            }
         }
-    }
-});
-
-/* Update Dashboard — exactly the same logic, but using sheetData instead of old 'data' */
-function updateDashboard(){
-
-let year = document.getElementById("yearFilter").value;
-let type = document.getElementById("typeFilter").value;
-
-let filtered = sheetData.filter(d=>{
-    let yearMatch = (year==="All" || d.date.split("/")[2]===year);
-    let typeMatch = (type==="All" || d.type===type);
-    return yearMatch && typeMatch;
-});
-
-let totalIncome = 0;
-let totalExpense = 0;
-let incomeCat = {};
-let expenseCat = {};
-let monthly = new Array(12).fill(0);
-
-filtered.forEach(d=>{
-    let month = parseInt(d.date.split("/")[1])-1;
-    monthly[month]+=d.amount;
-
-    if(d.type==="Income"){
-        totalIncome+=d.amount;
-        incomeCat[d.category]=(incomeCat[d.category]||0)+d.amount;
-    }
-    if(d.type==="Expense"){
-        totalExpense+=d.amount;
-        expenseCat[d.category]=(expenseCat[d.category]||0)+d.amount;
-    }
-});
-
-let net = totalIncome-totalExpense;
-
-document.getElementById("totalAmount").innerText = net.toLocaleString();
-
-donutChart.data.datasets[0].data=[totalIncome,totalExpense];
-donutChart.update();
-
-pieChart.data.datasets[0].data=[totalIncome,totalExpense,net];
-pieChart.update();
-
-incomeBar.data.labels=Object.keys(incomeCat);
-incomeBar.data.datasets[0].data=Object.values(incomeCat);
-incomeBar.update();
-
-expenseBar.data.labels=Object.keys(expenseCat);
-expenseBar.data.datasets[0].data=Object.values(expenseCat);
-expenseBar.update();
-
-lineChart.data.datasets[0].data=monthly;
-lineChart.update();
-}
-
-/* Populate Year Filter from the loaded sheetData */
-function populateYearFilter() {
-    let yearSet = new Set();
-    sheetData.forEach(d => yearSet.add(d.date.split("/")[2]));
-    let select = document.getElementById("yearFilter");
-    // keep the "All Years" option, remove dynamically added ones
-    select.innerHTML = '<option value="All">All Years</option>';
-    // sort years for nicer display
-    Array.from(yearSet).sort().forEach(y => {
-        if (y) select.innerHTML += `<option>${y}</option>`;
     });
 }
 
-/* Fetch CSV from Google Sheets, parse, and replace the hardcoded dataset */
-async function connectSheet() {
-    try {
-        const response = await fetch(SHEET_CSV_URL);
-        const csvText = await response.text();
-        
-        // Simple CSV split (assuming no quoted commas, which is fine for simple financial data)
-        const lines = csvText.trim().split('\n');
-        if (lines.length < 2) {
-            console.warn('Sheet appears empty');
-            sheetData = [];
-            populateYearFilter();
-            updateDashboard();
-            return;
+/* Update Dashboard */
+function updateDashboard(){
+    if (!sheetData || sheetData.length === 0) {
+        document.getElementById("totalAmount").innerText = "0";
+        return;
+    }
+
+    let year = document.getElementById("yearFilter").value;
+    let type = document.getElementById("typeFilter").value;
+
+    let filtered = sheetData.filter(d=>{
+        let yearMatch = (year==="All" || d.date.split("/")[2]===year);
+        let typeMatch = (type==="All" || d.type===type);
+        return yearMatch && typeMatch;
+    });
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+    let incomeCat = {};
+    let expenseCat = {};
+    let monthly = new Array(12).fill(0);
+
+    filtered.forEach(d=>{
+        let month = parseInt(d.date.split("/")[1])-1;
+        if (month >= 0 && month < 12) {
+            monthly[month] += d.amount;
         }
 
-        // Extract headers (case‑insensitive)
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-        const dateIdx = headers.indexOf('date');
-        const catIdx = headers.indexOf('category');
-        const amtIdx = headers.indexOf('amount');
-        const typeIdx = headers.indexOf('type');
-        
-        if (dateIdx === -1 || catIdx === -1 || amtIdx === -1 || typeIdx === -1) {
-            console.error('Sheet must contain columns: date, category, amount, type');
-            return;
+        if(d.type==="Income"){
+            totalIncome+=d.amount;
+            incomeCat[d.category]=(incomeCat[d.category]||0)+d.amount;
         }
+        if(d.type==="Expense"){
+            totalExpense+=d.amount;
+            expenseCat[d.category]=(expenseCat[d.category]||0)+d.amount;
+        }
+    });
 
-        let parsed = [];
-        for (let i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue;
-            const cols = lines[i].split(',');
-            if (cols.length <= Math.max(dateIdx, catIdx, amtIdx, typeIdx)) continue;
-            
-            const date = cols[dateIdx].trim();
-            const category = cols[catIdx].trim();
-            const amount = parseFloat(cols[amtIdx].trim());
-            const type = cols[typeIdx].trim();
-            
-            // basic validation
-            if (!date || !category || isNaN(amount) || !type) continue;
-            
+    let net = totalIncome-totalExpense;
+
+    document.getElementById("totalAmount").innerText = net.toLocaleString();
+
+    if (donutChart) {
+        donutChart.data.datasets[0].data=[totalIncome,totalExpense];
+        donutChart.update();
+    }
+
+    if (pieChart) {
+        pieChart.data.datasets[0].data=[totalIncome,totalExpense,net];
+        pieChart.update();
+    }
+
+    if (incomeBar) {
+        incomeBar.data.labels=Object.keys(incomeCat);
+        incomeBar.data.datasets[0].data=Object.values(incomeCat);
+        incomeBar.update();
+    }
+
+    if (expenseBar) {
+        expenseBar.data.labels=Object.keys(expenseCat);
+        expenseBar.data.datasets[0].data=Object.values(expenseCat);
+        expenseBar.update();
+    }
+
+    if (lineChart) {
+        lineChart.data.datasets[0].data=monthly;
+        lineChart.update();
+    }
+}
+
+/* Populate Year Filter */
+function populateYearFilter() {
+    let yearSet = new Set();
+    sheetData.forEach(d => {
+        let year = d.date.split("/")[2];
+        if (year) yearSet.add(year);
+    });
+    
+    let select = document.getElementById("yearFilter");
+    select.innerHTML = '<option value="All">All Years</option>';
+    
+    // Sort years numerically
+    Array.from(yearSet).sort((a,b) => parseInt(a) - parseInt(b)).forEach(y => {
+        if (y) select.innerHTML += `<option value="${y}">${y}</option>`;
+    });
+}
+
+/* Parse CSV data */
+function parseCSV(csvText) {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+    
+    // Try to detect delimiter (comma or semicolon)
+    const firstLine = lines[0];
+    const delimiter = firstLine.includes(';') ? ';' : ',';
+    
+    const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+    
+    const dateIdx = headers.findIndex(h => h.includes('date'));
+    const catIdx = headers.findIndex(h => h.includes('category'));
+    const amtIdx = headers.findIndex(h => h.includes('amount'));
+    const typeIdx = headers.findIndex(h => h.includes('type'));
+    
+    if (dateIdx === -1 || catIdx === -1 || amtIdx === -1 || typeIdx === -1) {
+        console.error('Required columns not found:', headers);
+        return [];
+    }
+
+    let parsed = [];
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        
+        // Handle quoted values
+        const cols = lines[i].split(delimiter).map(c => c.trim().replace(/^"|"$/g, ''));
+        if (cols.length <= Math.max(dateIdx, catIdx, amtIdx, typeIdx)) continue;
+        
+        const date = cols[dateIdx];
+        const category = cols[catIdx];
+        const amount = parseFloat(cols[amtIdx].replace(/[$,]/g, ''));
+        const type = cols[typeIdx].charAt(0).toUpperCase() + cols[typeIdx].slice(1).toLowerCase();
+        
+        if (!date || !category || isNaN(amount) || !type) continue;
+        
+        // Validate date format (DD/MM/YYYY)
+        const dateParts = date.split('/');
+        if (dateParts.length === 3) {
             parsed.push({ date, category, amount, type });
         }
+    }
+    
+    return parsed;
+}
+
+/* Load data from Google Sheet */
+async function loadSheetData() {
+    // Show loading state
+    const dashboard = document.querySelector('.dashboard');
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading';
+    loadingDiv.textContent = 'Loading data from Google Sheet...';
+    dashboard.prepend(loadingDiv);
+    
+    try {
+        // Try to fetch with proxy first
+        const response = await fetch(PROXY_URL + encodeURIComponent(SHEET_CSV_URL));
+        if (!response.ok) throw new Error('Proxy fetch failed');
         
-        sheetData = parsed;   // <-- global dataset now comes from sheet
+        const csvText = await response.text();
+        sheetData = parseCSV(csvText);
         
-        // Update filter and dashboard
-        populateYearFilter();
-        updateDashboard();
+        if (sheetData.length === 0) {
+            throw new Error('No valid data found in sheet');
+        }
         
-    } catch (err) {
-        console.error('Failed to load Google Sheet:', err);
-        // fallback: empty dataset (no hardcoded data)
-        sheetData = [];
+        console.log('Loaded', sheetData.length, 'records from Google Sheet');
+        
+    } catch (error) {
+        console.warn('Failed to load from proxy, trying direct fetch:', error);
+        
+        try {
+            // Try direct fetch as fallback
+            const response = await fetch(SHEET_CSV_URL);
+            if (!response.ok) throw new Error('Direct fetch failed');
+            
+            const csvText = await response.text();
+            sheetData = parseCSV(csvText);
+            
+        } catch (directError) {
+            console.warn('Direct fetch failed, using fallback data:', directError);
+            
+            // Use fallback data if both methods fail
+            sheetData = FALLBACK_DATA;
+            
+            // Show warning to user
+            const warningDiv = document.createElement('div');
+            warningDiv.className = 'error-message';
+            warningDiv.textContent = '⚠️ Using demo data - Google Sheet connection failed';
+            dashboard.prepend(warningDiv);
+        }
+    }
+    
+    // Remove loading indicator
+    loadingDiv.remove();
+    
+    if (sheetData.length > 0) {
         populateYearFilter();
         updateDashboard();
     }
 }
 
-// Attach listeners (same as original)
+// Initialize charts first
+initCharts();
+
+// Attach listeners
 document.getElementById("yearFilter").addEventListener("change", updateDashboard);
 document.getElementById("typeFilter").addEventListener("change", updateDashboard);
 
-// Start the connection — this replaces the old static dataset completely
-connectSheet();
+// Start loading data
+loadSheetData();
 
-// NOTE: the original hardcoded 'data' array has been removed.
-// All charts now use 'sheetData' loaded from the provided Google Sheet link.
 </script>
 
 </body>
