@@ -167,59 +167,26 @@ canvas{
 
 </div>
 
-
-    
 <script>
+
+document.addEventListener("DOMContentLoaded", function() {
 
 let data = [];
 
-fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vTC9oVh_keSpL8JCy71_9-OFdQ2E1EGa2YPKy7o915PUJF9Lakgcl6z66y21bXgdG7pIC840VDE2VI4/pub?output=csv")
-.then(response => response.text())
-.then(csv => {
-
-    // Proper CSV parsing
-    const rows = csv.trim().split("\n").slice(1);
-
-    rows.forEach(row => {
-
-        // Use regex to handle commas inside currency properly
-        const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
-
-        if(!cols || cols.length < 6) return;
-
-        let date = cols[1].replace(/"/g,'').trim();
-        let category = cols[3].replace(/"/g,'').trim();
-        let amount = cols[4].replace(/"/g,'').trim();
-        let type = cols[5].replace(/"/g,'').trim();
-
-        data.push({
-            date: date,
-            category: category,
-            amount: parseFloat(amount.replace(/[^0-9.-]+/g,"")),
-            type: type
-        });
-
-    });
-
-    initializeDashboard();
-})
-.catch(err => console.log("Fetch error:", err));
-
-/* Charts */
-
-let donutChart = new Chart(document.getElementById('donutChart'),{
+/* CREATE CHARTS AFTER DOM LOAD */
+const donutChart = new Chart(document.getElementById('donutChart'),{
     type:'doughnut',
     data:{labels:["Income","Expense"],datasets:[{data:[0,0]}]},
     options:{plugins:{legend:{labels:{color:"white"}}}}
 });
 
-let pieChart = new Chart(document.getElementById('pieChart'),{
+const pieChart = new Chart(document.getElementById('pieChart'),{
     type:'pie',
     data:{labels:["Income","Expense","Net Balance"],datasets:[{data:[0,0,0]}]},
     options:{plugins:{legend:{labels:{color:"white"}}}}
 });
 
-let incomeBar = new Chart(document.getElementById('incomeBar'),{
+const incomeBar = new Chart(document.getElementById('incomeBar'),{
     type:'bar',
     data:{labels:[],datasets:[{label:"Income",data:[]}]},
     options:{
@@ -228,7 +195,7 @@ let incomeBar = new Chart(document.getElementById('incomeBar'),{
     }
 });
 
-let expenseBar = new Chart(document.getElementById('expenseBar'),{
+const expenseBar = new Chart(document.getElementById('expenseBar'),{
     type:'bar',
     data:{labels:[],datasets:[{label:"Expense",data:[]}]},
     options:{
@@ -237,41 +204,69 @@ let expenseBar = new Chart(document.getElementById('expenseBar'),{
     }
 });
 
+
+/* FETCH DATA */
+fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vTC9oVh_keSpL8JCy71_9-OFdQ2E1EGa2YPKy7o915PUJF9Lakgcl6z66y21bXgdG7pIC840VDE2VI4/pub?output=csv")
+.then(res => res.text())
+.then(csv => {
+
+    const rows = csv.trim().split("\n").slice(1);
+
+    rows.forEach(row => {
+
+        const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+        if(!cols || cols.length < 6) return;
+
+        const cleanAmount = parseFloat(
+            cols[4].replace(/"/g,'').replace(/[^0-9.-]+/g,"")
+        );
+
+        if(isNaN(cleanAmount)) return;
+
+        data.push({
+            date: cols[1].replace(/"/g,'').trim(),
+            category: cols[3].replace(/"/g,'').trim(),
+            amount: cleanAmount,
+            type: cols[5].replace(/"/g,'').trim()
+        });
+
+    });
+
+    initializeDashboard();
+});
+
+
 function initializeDashboard(){
 
     let yearSet = new Set();
 
     data.forEach(d=>{
-        let parts = d.date.split("/");
+        const parts = d.date.split("/");
         if(parts.length === 3){
             yearSet.add(parts[2]);
         }
     });
 
-    let yearFilter = document.getElementById("yearFilter");
+    const yearFilter = document.getElementById("yearFilter");
     yearFilter.innerHTML = '<option value="All">All Years</option>';
 
     yearSet.forEach(y=>{
-        yearFilter.innerHTML += `<option>${y}</option>`;
+        yearFilter.innerHTML += `<option value="${y}">${y}</option>`;
     });
 
     updateDashboard();
 }
 
+
 function updateDashboard(){
 
-    let year = document.getElementById("yearFilter").value;
-    let type = document.getElementById("typeFilter").value;
+    const year = document.getElementById("yearFilter").value;
+    const type = document.getElementById("typeFilter").value;
 
-    let filtered = data.filter(d => {
-
-        let parts = d.date.split("/");
-        let recordYear = parts[2];
-
-        let yearMatch = (year==="All" || recordYear===year);
-        let typeMatch = (type==="All" || d.type===type);
-
-        return yearMatch && typeMatch;
+    const filtered = data.filter(d=>{
+        const recordYear = d.date.split("/")[2];
+        return (year==="All" || recordYear===year) &&
+               (type==="All" || d.type===type);
     });
 
     let totalIncome = 0;
@@ -282,34 +277,38 @@ function updateDashboard(){
     filtered.forEach(d=>{
         if(d.type==="Income"){
             totalIncome += d.amount;
-            incomeCategories[d.category]=(incomeCategories[d.category]||0)+d.amount;
+            incomeCategories[d.category] =
+                (incomeCategories[d.category] || 0) + d.amount;
         }
         if(d.type==="Expense"){
             totalExpense += d.amount;
-            expenseCategories[d.category]=(expenseCategories[d.category]||0)+d.amount;
+            expenseCategories[d.category] =
+                (expenseCategories[d.category] || 0) + d.amount;
         }
     });
 
-    let net = totalIncome - totalExpense;
+    const net = totalIncome - totalExpense;
 
-    donutChart.data.datasets[0].data=[totalIncome,totalExpense];
+    donutChart.data.datasets[0].data = [totalIncome,totalExpense];
     donutChart.update();
 
-    pieChart.data.datasets[0].data=[totalIncome,totalExpense,net];
+    pieChart.data.datasets[0].data = [totalIncome,totalExpense,net];
     pieChart.update();
 
-    incomeBar.data.labels=Object.keys(incomeCategories);
-    incomeBar.data.datasets[0].data=Object.values(incomeCategories);
+    incomeBar.data.labels = Object.keys(incomeCategories);
+    incomeBar.data.datasets[0].data = Object.values(incomeCategories);
     incomeBar.update();
 
-    expenseBar.data.labels=Object.keys(expenseCategories);
-    expenseBar.data.datasets[0].data=Object.values(expenseCategories);
+    expenseBar.data.labels = Object.keys(expenseCategories);
+    expenseBar.data.datasets[0].data = Object.values(expenseCategories);
     expenseBar.update();
 }
+
 
 document.getElementById("yearFilter").addEventListener("change",updateDashboard);
 document.getElementById("typeFilter").addEventListener("change",updateDashboard);
 
+});
 </script>
 
 </body>
