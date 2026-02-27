@@ -1,14 +1,12 @@
 # 📊 Finance Dashboard
 A professional interactive Finance Dashboard built using HTML, CSS, and Chart.js.
 
-This project showcases  a single scrollable web page — built for portfolio and data visualization practice.
 
-
-## 🚀 Live Demo
+## `🚀 Live Demo`
 👉 https://devsonny01.github.io/Finance_Dashboards/finance_dashboard-2.html
 
 
-## 🧩 Features
+## `🧩 Features`
 📈 Interactive charts using Chart.js
 
 📅 Year filter
@@ -33,7 +31,7 @@ This project showcases  a single scrollable web page — built for portfolio and
 * Chart.js CDN
 
 
-## GitHub Pages
+## `GitHub Pages`
 📂 Project Structure
 Finance_Dashboards/
 │
@@ -43,7 +41,7 @@ Finance_Dashboards/
 └── README.md
 
 
-## 📊 Dataset Used
+## `📊 Dataset Used`
 | `Sample financial transaction data including:`
 |:---:|
 | Date |
@@ -53,7 +51,7 @@ Finance_Dashboards/
 The dataset is embedded directly inside the JavaScript file for easy customization.
 
 
-# 🔄 How It Works
+# `🔄 How It Works`
 * Filters update charts dynamically.
 
 * Charts recalculate totals in real time.
@@ -61,7 +59,7 @@ The dataset is embedded directly inside the JavaScript file for easy customizati
 * Net balance is automatically computed.
 
 
-## 🎯 Purpose of This Project
+## `🎯 Purpose of This Project`
 
 This project demonstrates:
 
