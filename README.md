@@ -3,7 +3,7 @@ A professional interactive Finance Dashboard built using HTML, CSS, and Chart.js
 
 
 ## `🚀 Live Demo`
-👉 https://devsonny01.github.io/Finance_Dashboards/finance_dashboard-2.html
+👉 https://devsonny01.github.io/Finance_Dashboards/
 
 
 ## `🧩 Features`
