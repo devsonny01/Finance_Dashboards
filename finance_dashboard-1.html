@@ -11,68 +11,21 @@ href="data:image/svg+xml,
 %3Ctext x='50' y='62' font-size='55' text-anchor='middle' fill='white' font-family='Arial'%3E📊%3C/text%3E
 %3C/svg%3E">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js">
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body{
     margin:0;
-    font-family: 'Segoe UI', sans-serif;
+    font-family:'Segoe UI', sans-serif;
     background:#dcdcdc;
 }
 
-/* GRID LAYOUT */
-.dashboard{
+/* Top Nav */
+.top-nav{
     width:95%;
-    margin:30px auto;
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    grid-gap:30px;
+    margin:40px auto 10px auto;
 }
-
-/* CARD DESIGN */
-.card{
-    padding:20px;
-    border-radius:10px;
-    color:white;
-    box-shadow:0 10px 20px rgba(0,0,0,0.4);
-    position:relative;
-}
-
-/* GRADIENT BACKGROUNDS */
-.card1{ background:linear-gradient(135deg,#7b2ff7,#f107a3);}
-.card2{ background:linear-gradient(135deg,#11998e,#38ef7d);}
-.card3{ background:linear-gradient(135deg,#000000,#434343);}
-.card4{ background:linear-gradient(135deg,#1e3c72,#2a5298);}
-
-/* TITLE */
-.card h3{
-    text-align:center;
-    margin-bottom:15px;
-}
-
-/* FILTERS */
-.filters{
-    width:95%;
-    margin:20px auto;
-    display:flex;
-    gap:15px;
-}
-
-select{
-    padding:8px;
-    border-radius:5px;
-    border:none;
-}
-
-canvas{
-    background:transparent;
-}
-
-/* TOP NAV */
 .top-nav a{
-    
     text-decoration:none;
     background:#25ae10;
     color:white;
@@ -84,22 +37,62 @@ canvas{
 .top-nav a:hover{
     background:#163c74;
 }
-.top-nav{
+
+/* Filters */
+.filters{
     width:95%;
-    margin:18px;  /* increased top space */
+    margin:20px auto;
+    display:flex;
+    gap:15px;
+}
+select{
+    padding:8px;
+    border-radius:5px;
+    border:none;
+}
+
+/* Dashboard Grid */
+.dashboard{
+    width:95%;
+    margin:30px auto;
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    grid-gap:30px;
+}
+
+/* Cards */
+.card{
+    padding:20px;
+    border-radius:10px;
+    color:white;
+    box-shadow:0 10px 20px rgba(0,0,0,0.4);
+}
+.card1{ background:linear-gradient(135deg,#7b2ff7,#f107a3);}
+.card2{ background:linear-gradient(135deg,#11998e,#38ef7d);}
+.card3{ background:linear-gradient(135deg,#000000,#434343);}
+.card4{ background:linear-gradient(135deg,#1e3c72,#2a5298);}
+
+.card h3{
+    text-align:center;
+    margin-bottom:15px;
+}
+canvas{
+    background:transparent;
 }
 </style>
+</head>
 
+<body>
 
-<!--Home Button-->
 <div class="top-nav">
     <a href="index.html">← Back to Home</a>
 </div>
 
-
-<!-- FILTERS -->
 <div class="filters">
-    <select id="yearFilter"><option value="All">All Years</option></select>
+    <select id="yearFilter">
+        <option value="All">All Years</option>
+    </select>
+
     <select id="typeFilter">
         <option value="All">All Type</option>
         <option value="Income">Income</option>
@@ -133,32 +126,48 @@ canvas{
 
 <script>
 
-/* ========= DATA (EASY TO ADD MORE HERE) ========= */
-let data = [
-{date:"01/01/2025",category:"Capital",amount:50000,type:"Income"},
-{date:"03/01/2025",category:"Rent",amount:8000,type:"Expense"},
-{date:"05/01/2025",category:"Services",amount:12000,type:"Income"},
-{date:"08/01/2025",category:"Utilities",amount:1500,type:"Expense"},
-{date:"12/01/2025",category:"Office",amount:1200,type:"Expense"},
-{date:"15/01/2025",category:"Services",amount:20000,type:"Income"},
-{date:"31/12/2025",category:"Utilities",amount:3000,type:"Expense"},
-{date:"01/01/2026",category:"Water",amount:90000,type:"Income"},
-{date:"02/01/2026",category:"Goods",amount:100000,type:"Income"},
-{date:"06/02/2025",category:"Capital",amount:30000,type:"Income"},
-{date:"06/03/2025",category:"Rent",amount:18000,type:"Expense"},
-{date:"06/01/2026",category:"Office",amount:18000,type:"Expense"}
-];
+/* ================= GOOGLE SHEET DATA ================= */
 
+let data = [];
 
-/* ===== Populate Year Filter Automatically ===== */
-let yearSet = new Set();
-data.forEach(d=> yearSet.add(d.date.split("/")[2]));
-yearSet.forEach(y=>{
-    document.getElementById("yearFilter").innerHTML += `<option>${y}</option>`;
+fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vTC9oVh_keSpL8JCy71_9-OFdQ2E1EGa2YPKy7o915PUJF9Lakgcl6z66y21bXgdG7pIC840VDE2VI4/pub?output=csv")
+.then(response => response.text())
+.then(csv => {
+
+let rows = csv.split("\n").slice(1);
+
+rows.forEach(row => {
+
+let cols = row.split(",");
+
+if(cols.length >= 6){
+
+let id = cols[0];
+let date = cols[1];
+let description = cols[2];
+let category = cols[3];
+let amount = cols[4];
+let type = cols[5];
+
+if(date && type){
+data.push({
+    date: date.trim(),
+    category: category.trim(),
+    amount: parseFloat(amount),
+    type: type.trim()
+});
+}
+
+}
+
 });
 
+initializeDashboard();
 
-/* ====== Chart Config ====== */
+});
+
+/* ================= CHART CONFIG ================= */
+
 let donutChart = new Chart(document.getElementById('donutChart'),{
     type:'doughnut',
     data:{labels:["Income","Expense"],datasets:[{data:[0,0]}]},
@@ -174,19 +183,47 @@ let pieChart = new Chart(document.getElementById('pieChart'),{
 let incomeBar = new Chart(document.getElementById('incomeBar'),{
     type:'bar',
     data:{labels:[],datasets:[{label:"Income",data:[]}]},
-    options:{plugins:{legend:{labels:{color:"white"}}},
-    scales:{x:{ticks:{color:"white"}},y:{ticks:{color:"white"}}}}
+    options:{
+        plugins:{legend:{labels:{color:"white"}}},
+        scales:{x:{ticks:{color:"white"}},y:{ticks:{color:"white"}}}
+    }
 });
 
 let expenseBar = new Chart(document.getElementById('expenseBar'),{
     type:'bar',
     data:{labels:[],datasets:[{label:"Expense",data:[]}]},
-    options:{plugins:{legend:{labels:{color:"white"}}},
-    scales:{x:{ticks:{color:"white"}},y:{ticks:{color:"white"}}}}
+    options:{
+        plugins:{legend:{labels:{color:"white"}}},
+        scales:{x:{ticks:{color:"white"}},y:{ticks:{color:"white"}}}
+    }
 });
 
+/* ================= INITIALIZE DASHBOARD ================= */
 
-/* ===== Dashboard Update Function ===== */
+function initializeDashboard(){
+
+let yearSet = new Set();
+
+data.forEach(d=>{
+    let parts = d.date.split("/");
+    if(parts.length === 3){
+        yearSet.add(parts[2]);
+    }
+});
+
+let yearFilter = document.getElementById("yearFilter");
+yearFilter.innerHTML = '<option value="All">All Years</option>';
+
+yearSet.forEach(y=>{
+    yearFilter.innerHTML += `<option>${y}</option>`;
+});
+
+updateDashboard();
+
+}
+
+/* ================= UPDATE FUNCTION ================= */
+
 function updateDashboard(){
 
 let year = document.getElementById("yearFilter").value;
@@ -216,7 +253,6 @@ filtered.forEach(d=>{
 
 let net = totalIncome - totalExpense;
 
-/* Update Charts */
 donutChart.data.datasets[0].data=[totalIncome,totalExpense];
 donutChart.update();
 
@@ -236,11 +272,7 @@ expenseBar.update();
 document.getElementById("yearFilter").addEventListener("change",updateDashboard);
 document.getElementById("typeFilter").addEventListener("change",updateDashboard);
 
-updateDashboard();
-
 </script>
 
-<script>
-</script>
 </body>
 </html>
