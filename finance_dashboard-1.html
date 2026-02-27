@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en" class=""><head><script>window.livecodes = window.livecodes || {};</script><title>DashBoard</title><meta name="title" content="DashBoard"><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><style id="__livecodes_styles__"></style><script src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js" async=""></script><script type="importmap">{
+  "imports": {}
+}</script></head><body>
+
+
+<meta charset="UTF-8">
+<title>Pro Finance Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+    margin:0;
+    font-family: 'Segoe UI', sans-serif;
+    background:#dcdcdc;
+}
+
+/* GRID LAYOUT */
+.dashboard{
+    width:95%;
+    margin:30px auto;
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    grid-gap:30px;
+}
+
+/* CARD DESIGN */
+.card{
+    padding:20px;
+    border-radius:10px;
+    color:white;
+    box-shadow:0 10px 20px rgba(0,0,0,0.4);
+    position:relative;
+}
+
+/* GRADIENT BACKGROUNDS */
+.card1{ background:linear-gradient(135deg,#7b2ff7,#f107a3);}
+.card2{ background:linear-gradient(135deg,#11998e,#38ef7d);}
+.card3{ background:linear-gradient(135deg,#000000,#434343);}
+.card4{ background:linear-gradient(135deg,#1e3c72,#2a5298);}
+
+/* TITLE */
+.card h3{
+    text-align:center;
+    margin-bottom:15px;
+}
+
+/* FILTERS */
+.filters{
+    width:95%;
+    margin:20px auto;
+    display:flex;
+    gap:15px;
+}
+
+select{
+    padding:8px;
+    border-radius:5px;
+    border:none;
+}
+
+canvas{
+    background:transparent;
+}
+
+</style>
+
+
+
+
+<!-- FILTERS -->
+<div class="filters">
+    <select id="yearFilter"><option value="All">All Years</option></select>
+    <select id="typeFilter">
+        <option value="All">All Type</option>
+        <option value="Income">Income</option>
+        <option value="Expense">Expense</option>
+    </select>
+</div>
+
+<div class="dashboard">
+
+<div class="card card1">
+    <h3>Income vs Expense</h3>
+    <canvas id="donutChart"></canvas>
+</div>
+
+<div class="card card2">
+    <h3>Yearly Summary</h3>
+    <canvas id="pieChart"></canvas>
+</div>
+
+<div class="card card3">
+    <h3>Income by Category</h3>
+    <canvas id="incomeBar"></canvas>
+</div>
+
+<div class="card card4">
+    <h3>Expense by Category</h3>
+    <canvas id="expenseBar"></canvas>
+</div>
+
+</div>
+
+<script>
+
+/* ========= DATA (EASY TO ADD MORE HERE) ========= */
+let data = [
+{date:"01/01/2025",category:"Capital",amount:50000,type:"Income"},
+{date:"03/01/2025",category:"Rent",amount:8000,type:"Expense"},
+{date:"05/01/2025",category:"Services",amount:12000,type:"Income"},
+{date:"08/01/2025",category:"Utilities",amount:1500,type:"Expense"},
+{date:"12/01/2025",category:"Office",amount:1200,type:"Expense"},
+{date:"15/01/2025",category:"Services",amount:20000,type:"Income"},
+{date:"31/12/2025",category:"Utilities",amount:3000,type:"Expense"},
+{date:"01/01/2026",category:"Water",amount:90000,type:"Income"},
+{date:"02/01/2026",category:"Goods",amount:100000,type:"Income"},
+{date:"06/02/2025",category:"Capital",amount:30000,type:"Income"},
+{date:"06/03/2025",category:"Rent",amount:18000,type:"Expense"},
+{date:"06/01/2026",category:"Office",amount:18000,type:"Expense"}
+];
+
+
+/* ===== Populate Year Filter Automatically ===== */
+let yearSet = new Set();
+data.forEach(d=> yearSet.add(d.date.split("/")[2]));
+yearSet.forEach(y=>{
+    document.getElementById("yearFilter").innerHTML += `<option>${y}</option>`;
+});
+
+
+/* ====== Chart Config ====== */
+let donutChart = new Chart(document.getElementById('donutChart'),{
+    type:'doughnut',
+    data:{labels:["Income","Expense"],datasets:[{data:[0,0]}]},
+    options:{plugins:{legend:{labels:{color:"white"}}}}
+});
+
+let pieChart = new Chart(document.getElementById('pieChart'),{
+    type:'pie',
+    data:{labels:["Income","Expense","Net Balance"],datasets:[{data:[0,0,0]}]},
+    options:{plugins:{legend:{labels:{color:"white"}}}}
+});
+
+let incomeBar = new Chart(document.getElementById('incomeBar'),{
+    type:'bar',
+    data:{labels:[],datasets:[{label:"Income",data:[]}]},
+    options:{plugins:{legend:{labels:{color:"white"}}},
+             scales:{x:{ticks:{color:"white"}},y:{ticks:{color:"white"}}}}
+});
+
+let expenseBar = new Chart(document.getElementById('expenseBar'),{
+    type:'bar',
+    data:{labels:[],datasets:[{label:"Expense",data:[]}]},
+    options:{plugins:{legend:{labels:{color:"white"}}},
+             scales:{x:{ticks:{color:"white"}},y:{ticks:{color:"white"}}}}
+});
+
+
+/* ===== Dashboard Update Function ===== */
+function updateDashboard(){
+
+let year = document.getElementById("yearFilter").value;
+let type = document.getElementById("typeFilter").value;
+
+let filtered = data.filter(d=>{
+    let yearMatch = (year==="All" || d.date.split("/")[2]===year);
+    let typeMatch = (type==="All" || d.type===type);
+    return yearMatch && typeMatch;
+});
+
+let totalIncome = 0;
+let totalExpense = 0;
+let incomeCategories = {};
+let expenseCategories = {};
+
+filtered.forEach(d=>{
+    if(d.type==="Income"){
+        totalIncome += d.amount;
+        incomeCategories[d.category]=(incomeCategories[d.category]||0)+d.amount;
+    }
+    if(d.type==="Expense"){
+        totalExpense += d.amount;
+        expenseCategories[d.category]=(expenseCategories[d.category]||0)+d.amount;
+    }
+});
+
+let net = totalIncome - totalExpense;
+
+/* Update Charts */
+donutChart.data.datasets[0].data=[totalIncome,totalExpense];
+donutChart.update();
+
+pieChart.data.datasets[0].data=[totalIncome,totalExpense,net];
+pieChart.update();
+
+incomeBar.data.labels=Object.keys(incomeCategories);
+incomeBar.data.datasets[0].data=Object.values(incomeCategories);
+incomeBar.update();
+
+expenseBar.data.labels=Object.keys(expenseCategories);
+expenseBar.data.datasets[0].data=Object.values(expenseCategories);
+expenseBar.update();
+
+}
+
+document.getElementById("yearFilter").addEventListener("change",updateDashboard);
+document.getElementById("typeFilter").addEventListener("change",updateDashboard);
+
+updateDashboard();
+
+</script>
+
+
+<script></script></body></html>
