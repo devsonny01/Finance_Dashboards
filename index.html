@@ -1,3 +1,105 @@
-<h1>My Finance Dashboards</h1>
-<a href="finance_dashboard-1.html">Dashboard 1</a><br>
-<a href="finance_dashboard-2.html">Dashboard 2</a>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Finance Dashboards | Sonny</title>
+
+<link rel="icon" type="image/svg+xml" 
+href="data:image/svg+xml,
+%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
+%3Crect width='100' height='100' rx='20' fill='%231f4e9a'/%3E
+%3Ctext x='50' y='62' font-size='55' text-anchor='middle' fill='white'%3E📊%3C/text%3E
+%3C/svg%3E">
+
+<style>
+
+body{
+    margin:0;
+    font-family:'Segoe UI', sans-serif;
+    background:linear-gradient(to right,#c8dbee,#e4eef7);
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+/* Main Card */
+.container{
+    background:white;
+    padding:50px 60px;
+    border-radius:25px;
+    box-shadow:0 25px 50px rgba(0,0,0,0.25);
+    text-align:center;
+    width:420px;
+}
+
+/* Title */
+h1{
+    margin-bottom:40px;
+    color:#1f4e9a;
+}
+
+/* Dashboard Buttons */
+.dashboard-btn{
+    display:block;
+    text-decoration:none;
+    margin:15px 0;
+    padding:15px;
+    border-radius:12px;
+    font-weight:600;
+    font-size:16px;
+    transition:0.3s;
+}
+
+/* Style 1 */
+.btn1{
+    background:#1f4e9a;
+    color:white;
+}
+
+.btn1:hover{
+    background:#163c74;
+    transform:translateY(-3px);
+}
+
+/* Style 2 */
+.btn2{
+    background:#27ae60;
+    color:white;
+}
+
+.btn2:hover{
+    background:#1e874b;
+    transform:translateY(-3px);
+}
+
+/* Footer */
+.footer{
+    margin-top:30px;
+    font-size:13px;
+    color:#777;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>📊 My Finance Dashboards</h1>
+
+    <a class="dashboard-btn btn1" href="finance_dashboard-1.html">
+        View Dashboard 1
+    </a>
+
+    <a class="dashboard-btn btn2" href="finance_dashboard-2.html">
+        View Dashboard 2
+    </a>
+
+    <div class="footer">
+        Built with HTML, CSS & Chart.js
+    </div>
+</div>
+
+</body>
+</html>
