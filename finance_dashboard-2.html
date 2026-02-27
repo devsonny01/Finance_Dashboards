@@ -110,8 +110,6 @@ canvas{
     margin:18px;  /* increased top space */
 }
 
-
-
 </style>
 
 <!--Home Button-->
@@ -169,30 +167,39 @@ canvas{
 
 <script>
 
-/* DATASET */
-let data = [
-{date:"01/01/2025",category:"Capital",amount:50000,type:"Income"},
-{date:"03/01/2025",category:"Rent",amount:8000,type:"Expense"},
-{date:"05/01/2025",category:"Services",amount:12000,type:"Income"},
-{date:"08/01/2025",category:"Utilities",amount:1500,type:"Expense"},
-{date:"12/01/2025",category:"Office",amount:1200,type:"Expense"},
-{date:"15/01/2025",category:"Services",amount:20000,type:"Income"},
-{date:"31/12/2025",category:"Utilities",amount:3000,type:"Expense"},
-{date:"01/01/2026",category:"Water",amount:90000,type:"Income"},
-{date:"02/01/2026",category:"Goods",amount:100000,type:"Income"},
-{date:"06/02/2025",category:"Capital",amount:30000,type:"Income"},
-{date:"06/03/2025",category:"Rent",amount:18000,type:"Expense"},
-{date:"06/01/2026",category:"Office",amount:18000,type:"Expense"}
-];
 
-/* Populate Year Filter */
-let yearSet = new Set();
-data.forEach(d=> yearSet.add(d.date.split("/")[2]));
-yearSet.forEach(y=>{
-    document.getElementById("yearFilter").innerHTML += `<option>${y}</option>`;
-});
+<script>
 
-/* Chart Instances */
+    // DATASET
+// Connect to  published Google Sheet CSV
+let data = [];
+fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vTC9oVh_keSpL8JCy71_9-OFdQ2E1EGa2YPKy7o915PUJF9Lakgcl6z66y21bXgdG7pIC840VDE2VI4/pub?output=csv")
+.then(response => response.text())
+.then(csv => {
+
+    const rows = csv.trim().split("\n").slice(1);
+
+    rows.forEach(row => {
+
+        const cols = row.split(",");
+
+        if(cols.length < 6) return;
+
+        data.push({
+            date: cols[1].trim(),
+            category: cols[3].trim(),
+            amount: parseFloat(cols[4].trim()),
+            type: cols[5].trim()
+        });
+
+    });
+
+    initializeDashboard();
+})
+.catch(err => console.log("Sheet error:", err));
+
+/* Charts */
+
 let donutChart = new Chart(document.getElementById('donutChart'),{
     type:'doughnut',
     data:{labels:["Income","Expense"],datasets:[{data:[0,0],backgroundColor:["#1f4e9a","#c0392b"]}]},
@@ -208,25 +215,11 @@ let pieChart = new Chart(document.getElementById('pieChart'),{
 let incomeBar = new Chart(document.getElementById('incomeBar'),{
     type:'bar',
     data:{labels:[],datasets:[{label:"Income",data:[],backgroundColor:"#1f4e9a"}]},
-    options:{
-        plugins:{legend:{labels:{color:"#1f1f1f"}}},
-        scales:{
-            x:{ticks:{color:"#1f1f1f"}},
-            y:{ticks:{color:"#1f1f1f"}}
-        }
-    }
 });
 
 let expenseBar = new Chart(document.getElementById('expenseBar'),{
     type:'bar',
     data:{labels:[],datasets:[{label:"Expense",data:[],backgroundColor:"#c0392b"}]},
-    options:{
-        plugins:{legend:{labels:{color:"#1f1f1f"}}},
-        scales:{
-            x:{ticks:{color:"#1f1f1f"}},
-            y:{ticks:{color:"#1f1f1f"}}
-        }
-    }
 });
 
 let lineChart = new Chart(document.getElementById('lineChart'),{
@@ -240,15 +233,30 @@ let lineChart = new Chart(document.getElementById('lineChart'),{
             backgroundColor:"rgba(31,78,154,0.2)",
             fill:true
         }]
-    },
-    options:{
-        plugins:{legend:{labels:{color:"#1f1f1f"}}},
-        scales:{
-            x:{ticks:{color:"#1f1f1f"}},
-            y:{ticks:{color:"#1f1f1f"}}
-        }
     }
 });
+
+/* Initialize */
+function initializeDashboard(){
+
+    let yearSet = new Set();
+
+    data.forEach(d=>{
+        let parts = d.date.split("/");
+        if(parts.length === 3){
+            yearSet.add(parts[2]);
+        }
+    });
+
+    let yearFilter = document.getElementById("yearFilter");
+    yearFilter.innerHTML = '<option value="All">All Years</option>';
+
+    yearSet.forEach(y=>{
+        yearFilter.innerHTML += `<option>${y}</option>`;
+    });
+
+    updateDashboard();
+}
 
 /* Update Dashboard */
 function updateDashboard(){
@@ -306,9 +314,7 @@ lineChart.update();
 
 document.getElementById("yearFilter").addEventListener("change",updateDashboard);
 document.getElementById("typeFilter").addEventListener("change",updateDashboard);
-
-updateDashboard();
-
+    
 </script>
 
 </body>
