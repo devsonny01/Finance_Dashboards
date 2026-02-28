@@ -48,7 +48,8 @@ Finance_Dashboards/
 | Category |
 | Amount |
 | Type (Income / Expense) |
-The dataset is embedded directly inside the JavaScript file for easy customization.
+
+#### The dataset is pulled directly from googlesheet for easy customization.
 
 
 # `🔄 How It Works`
