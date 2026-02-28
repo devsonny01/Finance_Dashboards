@@ -82,17 +82,19 @@ canvas{
 </style>
 </head>
 
-<body>
 
+<body>
 <div class="top-nav">
     <a href="index.html">← Back to Home</a>
 </div>
 
+<!--Years Display-->
 <div class="filters">
     <select id="yearFilter">
         <option value="All">All Years</option>
     </select>
 
+    <!--Types Display-->
     <select id="typeFilter">
         <option value="All">All Type</option>
         <option value="Income">Income</option>
@@ -100,8 +102,8 @@ canvas{
     </select>
 </div>
 
-<div class="dashboard">
 
+<div class="dashboard">
 <div class="card card1">
     <h3>Income vs Expense</h3>
     <canvas id="donutChart"></canvas>
@@ -121,13 +123,12 @@ canvas{
     <h3>Expense by Category</h3>
     <canvas id="expenseBar"></canvas>
 </div>
-
 </div>
 
+<!--Data Set Script-->
 <script>
 
 let data = [];
-
 fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vTC9oVh_keSpL8JCy71_9-OFdQ2E1EGa2YPKy7o915PUJF9Lakgcl6z66y21bXgdG7pIC840VDE2VI4/pub?output=csv")
 .then(response => response.text())
 .then(csv => {
