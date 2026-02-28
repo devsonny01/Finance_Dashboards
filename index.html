@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Finance Dashboards | Sonny</title>
 
 <link rel="icon" type="image/svg+xml" 
@@ -17,7 +18,7 @@ body{
     margin:0;
     font-family:'Segoe UI', sans-serif;
     background:linear-gradient(to right,#c8dbee,#e4eef7);
-    height:100vh;
+    min-height:100vh;
     display:flex;
     justify-content:center;
     align-items:center;
@@ -80,13 +81,21 @@ h1{
     color:#777;
 }
 
+@media (max-width:600px){
+    body{ align-items:center; padding:24px 0; }
+    .container{ width:92%; padding:20px; border-radius:18px; }
+    h1{ font-size:20px; margin-bottom:18px; }
+    .dashboard-btn{ display:block; width:100%; padding:12px; margin:10px 0; font-size:15px; }
+    .footer{ font-size:12px; }
+}
+
 </style>
 </head>
 
 <body>
 
 <div class="container">
-    <h1>📊 My Finance Dashboards</h1>
+    <h1>📊 Finance Dashboards</h1>
 
     <a class="dashboard-btn btn1" href="finance_dashboard-1.html">
         View Dashboard 1
