@@ -36,6 +36,8 @@ A professional interactive Finance Dashboard built using HTML, CSS, and Chart.js
 Finance_Dashboards/
 │
 
+├── finance_dashboard-1.html
+
 ├── finance_dashboard-2.html
 
 └── README.md
