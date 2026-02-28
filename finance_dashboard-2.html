@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Corporate Finance Dashboard</title>
 
 <link rel="icon" type="image/svg+xml"
@@ -29,6 +30,7 @@ body{
     margin:25px auto;
     display:flex;
     gap:15px;
+    flex-wrap:nowrap;
 }
 
 select{
@@ -37,6 +39,8 @@ select{
     border:1px solid #2c3e50;
     background:white;
     font-weight:600;
+    min-width:140px;
+    box-sizing:border-box;
 }
 
 /* Dashboard Grid */
@@ -91,6 +95,15 @@ font-weight:700;
 
 canvas{
     max-height:260px;
+}
+
+@media (max-width:600px){
+    .dashboard{ grid-template-columns:1fr; gap:16px; }
+    .card{ padding:16px; border-radius:18px; }
+    .kpi h1{ font-size:36px; }
+    canvas{ max-height:200px; }
+    .filters{ gap:8px; flex-wrap:wrap; }
+    select{ flex:1 1 48%; min-width:120px; }
 }
 
 /*Top Nav_Bar Design */
@@ -342,7 +355,6 @@ lineChart.update();
 document.getElementById("yearFilter").addEventListener("change",updateDashboard);
 document.getElementById("typeFilter").addEventListener("change",updateDashboard);
 
-updateDashboard();
 
 </script>
 
